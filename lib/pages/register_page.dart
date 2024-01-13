@@ -2,21 +2,21 @@ import 'package:chatapp/components/my_button.dart';
 import 'package:chatapp/components/my_text_field.dart';
 import 'package:flutter/material.dart';
 
-class LoginPage extends StatefulWidget {
+class RegisterPage extends StatefulWidget {
   final void Function()? onTap;
-  const LoginPage({super.key, required this.onTap});
-
+  const RegisterPage({super.key, required this.onTap});
   @override
-  State<LoginPage> createState() => _MyWidgetState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _MyWidgetState extends State<LoginPage> {
-  // text controller
+class _RegisterPageState extends State<RegisterPage> {
+  //text controller
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
 
-  // sign in user
-  void signIn() {}
+  //sign up user
+  void signUp() {}
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +33,7 @@ class _MyWidgetState extends State<LoginPage> {
                   height: 30,
                 ),
 
-                // logo
+                //logo
                 Icon(
                   Icons.message,
                   size: 100,
@@ -43,54 +43,62 @@ class _MyWidgetState extends State<LoginPage> {
                   height: 50,
                 ),
 
-                // welcome back message
+                //create account message
                 const Text(
-                  "Welcome back you've been missed!",
+                  "Let's create an account for you!",
                   style: TextStyle(fontSize: 16),
                 ),
                 const SizedBox(
                   height: 25,
                 ),
 
-                // email textfield
+                //email textfield
                 MyTextField(
-                  controller: emailController,
-                  hintText: 'Email',
-                  obscureText: false,
-                ),
+                    controller: emailController,
+                    hintText: 'Email',
+                    obscureText: false),
 
                 const SizedBox(
                   height: 10,
                 ),
 
-                // password textfield
+                //password textfield
                 MyTextField(
-                  controller: passwordController,
-                  hintText: 'Password',
-                  obscureText: true,
+                    controller: passwordController,
+                    hintText: 'Password',
+                    obscureText: true),
+
+                const SizedBox(
+                  height: 10,
                 ),
+
+                //confirm password textfield
+                MyTextField(
+                    controller: confirmPasswordController,
+                    hintText: 'Confirm password',
+                    obscureText: true),
 
                 const SizedBox(
                   height: 25,
                 ),
 
-                // signin button
-                MyButton(onTap: signIn, text: "Sign In"),
+                //sigin up button
+                MyButton(onTap: signUp, text: "Sign Up"),
 
                 const SizedBox(
                   height: 50,
                 ),
 
-                // not a member? registernow
+                //not a member? registernow
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Not a member?"),
+                    const Text("Already a member?"),
                     const SizedBox(width: 4),
                     GestureDetector(
                       onTap: widget.onTap,
                       child: const Text(
-                        "Register Now",
+                        "Login Now",
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     )

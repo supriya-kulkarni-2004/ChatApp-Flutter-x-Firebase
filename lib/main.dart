@@ -1,4 +1,4 @@
-import 'package:chatapp/pages/login_page.dart';
+import 'package:chatapp/services/auth/login_or_register.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -9,9 +9,9 @@ class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: LoginPage(),
+      home: LoginOrRegister(),
     );
   }
 }
