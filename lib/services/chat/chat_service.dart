@@ -1,48 +1,43 @@
 import 'package:chatapp/model/message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
 class ChatService extends ChangeNotifier {
-  //get instance of auth and firestore
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
-  //SEND MESSAGES
   Future<void> sendMessage(String receiverId, String message) async {
-    //get current user info
     final String currentUserId = _firebaseAuth.currentUser!.uid;
     final String currentUserEmail = _firebaseAuth.currentUser!.email.toString();
     final Timestamp timestamp = Timestamp.now();
 
-    //create a new message
     Message newMessage = Message(
-        senderID: currentUserId,
-        senderEmail: currentUserEmail,
-        receiverId: receiverId,
-        timestamp: timestamp,
-        message: message);
+      senderID: currentUserId,
+      senderEmail: currentUserEmail,
+      receiverId: receiverId,
+      timestamp: timestamp,
+      message: message,
+    );
 
-    //construct chat room id from the current user id and receiver id (sorted to ensure uniqueness)
     List<String> ids = [currentUserId, receiverId];
-    ids.sort(); //sort the ids (this ensures the chat room id is always the same for any pair of people)
-    String chatRoomId = ids
-        .join("_"); //combine the ids into a single string to use a chatroomID
+    ids.sort();
+    String chatRoomId = ids.join("_");
 
-    //add new message to the database
     await _firestore
         .collection('chat_rooms')
         .doc(chatRoomId)
         .collection('messages')
         .add(newMessage.toMAp());
+
+    _sendPushNotification(receiverId, message);
   }
 
-  //GET MESSAGES
   Stream<QuerySnapshot> getMessages(String userId, String otherUserId) {
-    //construct a chat room id from user ids (sorted to ensure it atches the id usedwhen sending messages)
     List<String> ids = [userId, otherUserId];
     ids.sort();
-
     String chatRoomId = ids.join("_");
 
     return _firestore
@@ -51,5 +46,58 @@ class ChatService extends ChangeNotifier {
         .collection('messages')
         .orderBy('timestamp', descending: false)
         .snapshots();
+  }
+
+  Future<void> handlePushNotifications(Map<String, dynamic> message) async {
+    String senderId = message['data']['senderId'];
+    String senderEmail = message['data']['senderEmail'];
+
+    bool isChatPageOpen = _isChatPageOpen(senderId);
+
+    if (isChatPageOpen) {
+      getMessages(senderId, _firebaseAuth.currentUser!.uid);
+    } else {
+      print(
+          'New message from $senderEmail: ${message['notification']['body']}');
+    }
+  }
+
+  bool _isChatPageOpen(String userId) {
+    return true;
+  }
+
+  Future<void> _sendPushNotification(String receiverId, String message) async {
+    String currentUserId = _firebaseAuth.currentUser!.uid;
+    String currentUserEmail = _firebaseAuth.currentUser!.email.toString();
+
+    String? receiverToken = await _getFCMToken(receiverId);
+
+    if (receiverToken != null) {
+      Map<String, dynamic> notificationMessage = {
+        'to': receiverToken,
+        'notification': {
+          'title': 'New Message from $currentUserEmail',
+          'body': message,
+        },
+        'data': {
+          'senderId': currentUserId,
+          'senderEmail': currentUserEmail,
+        },
+      };
+
+      // // Use the send method from the FirebaseMessaging instance
+      // await _firebaseMessaging.send(
+      //   RemoteMessage.fromMap(notificationMessage),
+      // );
+    }
+  }
+
+  Future<String?> _getFCMToken(String userId) async {
+    try {
+      return await _firebaseMessaging.getToken();
+    } catch (e) {
+      print('Error getting FCM token: $e');
+      return null;
+    }
   }
 }

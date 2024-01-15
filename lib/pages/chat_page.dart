@@ -8,10 +8,15 @@ import 'package:flutter/material.dart';
 class ChatPage extends StatefulWidget {
   final String receiveruserEmail;
   final String receiverUSerID;
-  const ChatPage(
-      {super.key,
-      required this.receiveruserEmail,
-      required this.receiverUSerID});
+  final bool
+      openedFromNotification; // Added this field : handles chatpage when opened from notification
+
+  const ChatPage({
+    super.key,
+    required this.receiveruserEmail,
+    required this.receiverUSerID,
+    this.openedFromNotification = false, //Initialize it with false
+  });
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -21,6 +26,30 @@ class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ChatService _chatService = ChatService();
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Check if the page is opened from a notification
+    if (widget.openedFromNotification) {
+      // Scroll to the bottom of the chat list when opened from a notification
+      _scrollToBottom();
+    }
+  }
+
+  // Helper method to scroll to the bottom of the chat list
+  void _scrollToBottom() {
+    WidgetsBinding.instance?.addPostFrameCallback((_) {
+      // Use a `ScrollController` to scroll to the bottom
+      _controller.animateTo(
+        _controller.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
 
   void sendMessage() async {
     //only send message if there is something to send
