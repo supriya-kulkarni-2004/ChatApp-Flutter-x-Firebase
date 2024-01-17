@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:chatapp/model/message.dart';
+import 'package:chatapp/util/constants.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class ChatService extends ChangeNotifier {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -70,7 +74,17 @@ class ChatService extends ChangeNotifier {
     String currentUserId = _firebaseAuth.currentUser!.uid;
     String currentUserEmail = _firebaseAuth.currentUser!.email.toString();
 
-    String? receiverToken = await _getFCMToken(receiverId);
+    // String? receiverToken = await _getFCMToken(receiverId);
+    // TODO: get fcm token from db
+    String? receiverToken;
+    var collection = _firestore.collection(Constants.USERS_DB);
+    var docSnapshot = await collection.doc(receiverId).get();
+    if (docSnapshot.exists) {
+      Map<String, dynamic> data = docSnapshot.data()!;
+
+      // You can then retrieve the value from the Map like this:
+      receiverToken = data['fcm_token'];
+    }
 
     if (receiverToken != null) {
       Map<String, dynamic> notificationMessage = {
@@ -89,15 +103,45 @@ class ChatService extends ChangeNotifier {
       // await _firebaseMessaging.send(
       //   RemoteMessage.fromMap(notificationMessage),
       // );
-    }
-  }
 
-  Future<String?> _getFCMToken(String userId) async {
-    try {
-      return await _firebaseMessaging.getToken();
-    } catch (e) {
-      print('Error getting FCM token: $e');
-      return null;
+      try {
+        String apiUrl = "https://fcm.googleapis.com/fcm/send";
+        var data = {
+          "to": receiverToken,
+          "notification": {
+            "title": "New Message from $currentUserEmail",
+            "body": message
+          },
+          "data": {'senderId': currentUserId, 'senderEmail': currentUserEmail}
+        };
+        var response = await http.post(
+          Uri.parse(apiUrl),
+          body: jsonEncode(data),
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization":
+                "key=AAAAgkFVLI8:APA91bFyUV_lPT-HlgMSlAfESwD_WnCR2OxaAxpmFByDNIdnMjwn2k_PPWGMRi31eey8UKPPBmAyEtug1czYIK8DCa3eAtnwcAJ8tJetSjIvzMzKoJBl5a78nO_z6JAH0dL6XM44Bc4C"
+          },
+        );
+
+        if (response.statusCode == 200) {
+          print('Response: ${response.body}');
+        } else {
+          print(
+              'Error - Status code: ${response.statusCode}, Message: ${response.body}');
+        }
+      } catch (e) {
+        print('Error - $e');
+      }
+    }
+
+    Future<String?> _getFCMToken(String userId) async {
+      try {
+        return await _firebaseMessaging.getToken();
+      } catch (e) {
+        print('Error getting FCM token: $e');
+        return null;
+      }
     }
   }
 }
